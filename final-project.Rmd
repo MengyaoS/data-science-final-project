@@ -1,0 +1,449 @@
+---
+title: "Final_Mengyao"
+author: "Mengyao"
+date: "2024-12-15"
+output: html_document
+---
+
+```{r}
+library(dplyr)
+library(tidyr)
+library(readr)
+```
+
+# IDA
+
+### Database setup
+
+## Database setup - Primary dataset (MDClone).
+
+# Read data
+```{r}
+# read raw data
+GIcancer <- read.csv('/Users/shimengyao/Library/CloudStorage/Box-Box/Cao Lab_SMY/PhD/Intro to Data Science I/Final project/Manuscript/raw_primary_data.csv')
+head(GIcancer, 10)
+
+# compute the number of rows and columns in the data frame
+
+nrows <- nrow(GIcancer)
+ncols <- ncol(GIcancer)
+cat("Number of rows:", nrows, "\n")
+cat("Number of columns:", ncols, "\n")
+
+```
+
+# Descriptive analyses
+```{r}
+# Calculate the mode function
+get_mode <- function(x) {
+  uniqx <- unique(na.omit(x))
+  uniqx[which.max(tabulate(match(x, uniqx)))]
+}
+
+# Creating the data profile with various statistics
+data_profile_tidy_numerical <- bind_rows(
+  GIcancer %>% summarise_all(length),  # Row count
+  GIcancer %>% summarise_all(n_distinct),  # Distinct values
+  GIcancer %>% summarise_all(~sum(is.na(.))),  # Null count
+  GIcancer %>% summarise_all(~sum(is.na(.)) / length(.) * 100),  # Percentage null
+  GIcancer %>% summarise_all(~ifelse(is.numeric(.), mean(., na.rm = TRUE), NaN)),  # Mean
+  GIcancer %>% summarise_all(~ifelse(is.numeric(.), median(., na.rm = TRUE), NaN)),  # Median
+  GIcancer %>% summarise_all(~ifelse(is.numeric(.), get_mode(.), NaN)),  # Mode
+  GIcancer %>% summarise_all(~ifelse(is.numeric(.), min(., na.rm = TRUE), NaN)),  # Minimum
+  GIcancer %>% summarise_all(~ifelse(is.numeric(.), max(., na.rm = TRUE), NaN)),  # Maximum
+  GIcancer %>% summarise_all(~ifelse(is.numeric(.), diff(range(., na.rm = TRUE)), NaN)),  # Range
+  GIcancer %>% summarise_all(~ifelse(is.numeric(.), var(., na.rm = TRUE), NaN)),  # Variance
+  GIcancer %>% summarise_all(~ifelse(is.numeric(.), sd(., na.rm = TRUE), NaN)),  # Standard deviation
+  GIcancer %>% summarise_all(~ifelse(is.numeric(.), quantile(., 0.25, na.rm = TRUE), NaN)),  # Lower quartile (Q1)
+  GIcancer %>% summarise_all(~ifelse(is.numeric(.), quantile(., 0.75, na.rm = TRUE), NaN)),  # Upper quartile (Q3)
+  GIcancer %>% summarise_all(~ifelse(is.numeric(.), IQR(., na.rm = TRUE), NaN))  # Interquartile range (IQR)
+) %>%
+  pivot_longer(cols = everything(), names_to = "variable", values_to = "value") %>%
+  group_by(variable) %>%
+  mutate(row = row_number()) %>%
+  pivot_wider(names_from = row, values_from = value)
+
+# Renaming columns for clarity
+colnames(data_profile_tidy_numerical) <- c("columns", 
+                                           "row_count", "distinct_values", "null_count", "percentage_null", 
+                                           "Mean", "Median", "Mode", "Min", "Max", "Range", 
+                                           "Variance", "Standard Deviation", "Lower Quartile (Q1)", 
+                                           "Upper Quartile (Q3)", "Interquartile Range (IQR)")
+
+```
+
+
+```{r}
+find_mode <- function(x) {
+  u <- unique(x)
+  tab <- tabulate(match(x, u))
+  u[tab == max(tab)][1]
+}
+
+data_profile_tidy_character <- bind_rows(
+  GIcancer %>% summarise_all(typeof),
+  GIcancer %>% summarise_all(~as.character(find_mode(.)))
+) %>%
+  pivot_longer(cols = everything(), names_to = "variable", values_to = "value") %>%
+  group_by(variable) %>%
+  mutate(row = row_number()) %>%
+  pivot_wider(names_from = row, values_from = value)
+colnames(data_profile_tidy_character) <- c("columns", "data_types", "Mode")
+```
+
+
+## Complimentary dataset (US Census)
+```{r}
+# read data
+acs_data <- read.csv('/Users/shimengyao/Library/CloudStorage/Box-Box/Cao Lab_SMY/PhD/Intro to Data Science I/Final project/Manuscript/raw_complimentary_data.csv')
+head(acs_data, 10)
+```
+
+
+```{r}
+# Calculate the mode function
+get_mode <- function(x) {
+  uniqx <- unique(na.omit(x))
+  uniqx[which.max(tabulate(match(x, uniqx)))]
+}
+
+# Creating the data profile with various statistics
+data_profile_tidy_numerical2 <- bind_rows(
+  acs_data %>% summarise_all(length),  # Row count
+  acs_data %>% summarise_all(n_distinct),  # Distinct values
+  acs_data %>% summarise_all(~sum(is.na(.))),  # Null count
+  acs_data %>% summarise_all(~sum(is.na(.)) / length(.) * 100),  # Percentage null
+  acs_data %>% summarise_all(~ifelse(is.numeric(.), mean(., na.rm = TRUE), NaN)),  # Mean
+  acs_data %>% summarise_all(~ifelse(is.numeric(.), median(., na.rm = TRUE), NaN)),  # Median
+  acs_data %>% summarise_all(~ifelse(is.numeric(.), get_mode(.), NaN)),  # Mode
+  acs_data %>% summarise_all(~ifelse(is.numeric(.), min(., na.rm = TRUE), NaN)),  # Minimum
+  acs_data %>% summarise_all(~ifelse(is.numeric(.), max(., na.rm = TRUE), NaN)),  # Maximum
+  acs_data %>% summarise_all(~ifelse(is.numeric(.), diff(range(., na.rm = TRUE)), NaN)),  # Range
+  acs_data %>% summarise_all(~ifelse(is.numeric(.), var(., na.rm = TRUE), NaN)),  # Variance
+  acs_data %>% summarise_all(~ifelse(is.numeric(.), sd(., na.rm = TRUE), NaN)),  # Standard deviation
+  acs_data %>% summarise_all(~ifelse(is.numeric(.), quantile(., 0.25, na.rm = TRUE), NaN)),  # Lower quartile (Q1)
+  acs_data %>% summarise_all(~ifelse(is.numeric(.), quantile(., 0.75, na.rm = TRUE), NaN)),  # Upper quartile (Q3)
+  acs_data %>% summarise_all(~ifelse(is.numeric(.), IQR(., na.rm = TRUE), NaN))  # Interquartile range (IQR)
+) %>%
+  pivot_longer(cols = everything(), names_to = "variable", values_to = "value") %>%
+  group_by(variable) %>%
+  mutate(row = row_number()) %>%
+  pivot_wider(names_from = row, values_from = value)
+
+# Renaming columns for clarity
+colnames(data_profile_tidy_numerical2) <- c("columns", 
+                                           "row_count", "distinct_values", "null_count", "percentage_null", 
+                                           "Mean", "Median", "Mode", "Min", "Max", "Range", 
+                                           "Variance", "Standard Deviation", "Lower Quartile (Q1)", 
+                                           "Upper Quartile (Q3)", "Interquartile Range (IQR)")
+
+```
+
+```{r}
+data_profile_tidy_character2 <- bind_rows(
+  acs_data %>% summarise_all(typeof),
+  acs_data %>% summarise_all(~as.character(find_mode(.)))
+) %>%
+  pivot_longer(cols = everything(), names_to = "variable", values_to = "value") %>%
+  group_by(variable) %>%
+  mutate(row = row_number()) %>%
+  pivot_wider(names_from = row, values_from = value)
+colnames(data_profile_tidy_character2) <- c("columns", "data_types", "Mode")
+
+```
+
+### Distribution analysis
+```{r}
+library(ggplot2)
+library(gridExtra)
+
+
+# Boxplot of date.of.birth
+box_dob <- GIcancer %>%
+  ggplot(aes(y = date.of.birth)) +
+  geom_boxplot(fill = "#BA0C2F") +
+  theme_minimal() +
+  labs(y = "Year of birth", x = "Box plot") +
+  coord_flip()
+box_dob
+
+# Boxplot of cohort.reference.event.age.at.event
+box_age <- GIcancer %>%
+  ggplot(aes(y = cohort.reference.event.age.at.event)) +
+  geom_boxplot(fill = "#BA0C2F") +
+  theme_minimal() +
+  labs(y = "Age at diagnosis of GI cancer", x = "Box plot") +
+  coord_flip()
+box_age
+
+# Boxplot of Mean_Income
+box_income <- acs_data %>%
+  ggplot(aes(y = Mean_Income)) +
+  geom_boxplot(fill = "#BA0C2F") +
+  theme_minimal() +
+  labs(y = "Mean household income", x = "Box plot") +
+  coord_flip()
+box_income
+
+# Boxplot of Mean_Education
+box_education <- acs_data %>%
+  ggplot(aes(y = Mean_Education)) +
+  geom_boxplot(fill = "#BA0C2F") +
+  theme_minimal() +
+  labs(y = "Percent of bachelor’s degree or higher", x = "Box plot") +
+  coord_flip()
+box_education
+```
+
+```{r}
+# Mutate categorical variables (count = 0 as 'No', count >= 1 as 'Yes')
+GIcancer <- GIcancer %>%
+  mutate(across(c(copd.count, ardds.count, obesity.count, diabetes.count, hypertension.count, 
+                  dyslipidemia.count, ibd.count, chronic.liver.disease.count, antiarrhythmics.count, 
+                  vasodilators.count, statins.count), 
+                ~ ifelse(. == 0, 'No', 'Yes')))
+
+# Mutate the three variables to 0 if NA and 1 if they have a value
+GIcancer <- GIcancer %>%
+  mutate(across(c(ischemic.heart.disease..age.at.event, 
+                  congestive.heart.failure..age.at.event, 
+                  stroke..age.at.event),
+                ~ ifelse(is.na(.), 0, 1)))
+
+# Combine the three variables to create 'mace' variable
+GIcancer <- GIcancer %>%
+  mutate(mace = ifelse(ischemic.heart.disease..age.at.event == 0 & 
+                       congestive.heart.failure..age.at.event == 0 & 
+                       stroke..age.at.event == 0, 
+                       'No', 'Yes'))
+
+# View the mutated data
+head(GIcancer)
+
+```
+
+```{r}
+# List of categorical variables to plot
+categorical_vars <- c("copd.count", "ardds.count", "obesity.count", "diabetes.count", 
+                      "hypertension.count", "dyslipidemia.count", "ibd.count", 
+                      "chronic.liver.disease.count", "antiarrhythmics.count", 
+                      "vasodilators.count", "statins.count",  
+                      "gender.at.birth", "race...primary", "demographic.home...3.digit.zipcode",
+                      "mace")
+
+# Named vector for custom x-axis labels
+x_labels <- c("copd.count" = "COPD", "ardds.count" = "ARDDs", "obesity.count" = "Obesity", 
+              "diabetes.count" = "Diabetes", "hypertension.count" = "Hypertension", 
+              "dyslipidemia.count" = "Dyslipidemia", "ibd.count" = "IBD", 
+              "chronic.liver.disease.count" = "Chronic liver disease", 
+              "antiarrhythmics.count" = "Antiarrhythmics", 
+              "vasodilators.count" = "Vasodilators", "statins.count" = "Statins", 
+              "demographic.home...3.digit.zipcode" = "ZipCode",
+              "gender.at.birth" = "Gender", "race...primary" = "Race", "mace" = "MACE")
+
+# Generate a list of ggplot objects (bar plots) with rotated x-axis labels for race
+plots <- lapply(categorical_vars, function(var) {
+  if (var == "demographic.home...3.digit.zipcode") {
+    # Create the plot for ZipCode with specific x-axis breaks and labels
+    plot <- ggplot(GIcancer, aes(x = demographic.home...3.digit.zipcode)) +
+      geom_bar(fill = "#BA0C2F", color = "gray") +
+      labs(x = x_labels[[var]], y = "Count") +
+      theme_minimal() +
+      scale_x_discrete(
+        breaks = c("0", "censored"),  # Specify x-axis values to display
+        labels = c("0", "Censored")  # Custom labels for these values
+      )
+  } else {
+    # Default bar plot for other categorical variables
+    plot <- ggplot(GIcancer, aes_string(x = var)) +
+      geom_bar(fill = "#BA0C2F", color = "gray") +
+      labs(x = x_labels[[var]], y = "Count") +
+      theme_minimal()
+  }
+  
+  # Rotate x-axis labels for the race variable
+  if (var == "race...primary") {
+    plot <- plot + theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  }
+  
+  return(plot)
+})
+
+
+# Arrange the plots in a grid
+plot_grid <- grid.arrange(grobs = plots, ncol = 5, nrow = 3)
+
+ggsave("categorical_variables_barplots_with_custom_labels.png", plot = plot_grid, width = 15, height = 10, dpi = 300)
+```
+
+
+```{r}
+# Load necessary packages
+library(ggplot2)
+library(patchwork)
+library(gridExtra)
+
+# Panel A: Arrange the box plots in a single row
+panel_a <- (box_dob + box_age + box_income + box_education) +
+  plot_annotation(tag_levels = "A")  # Add "A" tag to Panel A
+
+# Panel B: Convert the bar plots grid into a patchwork-compatible object
+panel_b <- wrap_elements(grid.arrange(grobs = plots, ncol = 5, nrow = 3)) +
+  plot_annotation(tag_levels = "B")  # Add "B" tag to Panel B
+
+# Combine Panel A and Panel B vertically, adjusting relative heights
+final_figure <- panel_a / panel_b +
+  plot_layout(heights = c(1, 2)) +  # Panel A is 1/3 of the height, Panel B is 2/3
+  plot_annotation(tag_levels = NULL, title = "")  # Ensure overall annotation doesn't overwrite panel tags
+
+final_figure
+# Save the combined figure
+ggsave("combined_panels_a_b_adjusted.png", plot = final_figure, width = 20, height = 15, dpi = 300)
+```
+
+
+```{r}
+# Create a new dataset without observations where demographic.home...3.digit.zipcode is 0 or "censored"
+GIcancer <- GIcancer %>%
+  filter(demographic.home...3.digit.zipcode != 0 & 
+         demographic.home...3.digit.zipcode != "censored")
+```
+
+
+```{r}
+library(DBI)
+library(RPostgreSQL)
+library(dplyr)
+```
+
+# Select the postgres driver
+```{r}
+drv <- dbDriver("PostgreSQL")
+```
+
+# Create a connection to the postgres database
+```{r}
+con <- dbConnect(RPostgres::Postgres(),
+                 dbname="final_project",port = 5432,
+                 user = "postgres", password = "967290")
+```
+
+# Get tables - primary dataset
+```{r}
+mdclone <- dbGetQuery(con,"SELECT * FROM raw_data.mdclone")
+head(mdclone)
+```
+
+```{r}
+colnames(mdclone)
+```
+
+
+# Get tables - complimentary dataset
+```{r}
+acs <- dbGetQuery(con,"SELECT * FROM raw_data.acs")
+head(acs)
+```
+
+```{r}
+query <- "
+WITH adjusted_mdclone AS (
+    SELECT *,
+           EXTRACT(YEAR FROM to_timestamp(cohort_reference_event_problem_onset_date_time)) AS year_of_diagnosis,
+           CASE
+               WHEN EXTRACT(YEAR FROM to_timestamp(cohort_reference_event_problem_onset_date_time)) < 2011 THEN 2011
+               WHEN EXTRACT(YEAR FROM to_timestamp(cohort_reference_event_problem_onset_date_time)) > 2022 THEN 2022
+               ELSE EXTRACT(YEAR FROM to_timestamp(cohort_reference_event_problem_onset_date_time))
+           END AS adjusted_year,
+           CAST(demographic_home_3_digit_zipcode AS TEXT) AS zip_code
+    FROM raw_data.mdclone
+),
+acs_adjusted AS (
+    SELECT zip_code, year, mean_income, mean_education
+    FROM raw_data.acs
+)
+SELECT m.*, 
+       a.mean_income, 
+       a.mean_education
+FROM adjusted_mdclone m
+LEFT JOIN acs_adjusted a 
+    ON m.zip_code = a.zip_code
+    AND m.adjusted_year = a.year;
+"
+
+merged <- dbGetQuery(con, query)
+head(merged)
+```
+
+```{r}
+final <- merged %>%
+  mutate(
+    gender = case_when(
+      gender_at_birth == "FEMALE" ~ "F",
+      gender_at_birth == "MALE" ~ "M"
+    ),
+    gender = factor(gender, levels = c("F", "M")),
+    
+    race = case_when(
+      race_primary == "White" ~ "White",
+      race_primary %in% c("Black or African American", "Black") ~ "Black",
+      race_primary == "Asian" ~ "Asian",
+      race_primary == "Unknown racial group" ~ "Other",
+      TRUE ~ "Other"  # For any other possible values
+    ),
+    race = factor(race, levels = c("White", "Black", "Asian", "Other")),
+    
+    age_at_cancer_diagnosis = round(cohort_reference_event_age_at_event, 0),
+    year_of_birth = as.numeric(date_of_birth),
+    
+    education = case_when(
+      ntile(mean_education, 4) == 1 ~ "Q1",
+      ntile(mean_education, 4) == 2 ~ "Q2",
+      ntile(mean_education, 4) == 3 ~ "Q3",
+      ntile(mean_education, 4) == 4 ~ "Q4"
+    ),
+    education = factor(education, levels = c("Q1", "Q2", "Q3", "Q4")),
+    
+    income = case_when(
+      ntile(mean_income, 4) == 1 ~ "Q1",
+      ntile(mean_income, 4) == 2 ~ "Q2",
+      ntile(mean_income, 4) == 3 ~ "Q3",
+      ntile(mean_income, 4) == 4 ~ "Q4"
+    ),
+    income = factor(income, levels = c("Q1", "Q2", "Q3", "Q4")),
+    
+    # Keeping counts instead of categorical variables
+    copd_count = copd_count,
+    ardds_count = ardds_count,
+    obesity_count = obesity_count,
+    diabetes_count = diabetes_count,
+    hypertension_count = hypertension_count,
+    dyslipidemia_count = dyslipidemia_count,
+    ibd_count = ibd_count,
+    chronic_liver_disease_count = chronic_liver_disease_count,
+    antiarrhythmics_count = antiarrhythmics_count,
+    vasodilators_count = vasodilators_count,
+    statins_count = statins_count,
+    
+    # MACE based on age of heart disease, failure, or stroke
+    mutate(across(c(ischemic_heart_disease_age_at_event, 
+                    congestive_heart_failure_age_at_event, 
+                    stroke_age_at_event),
+                  ~ ifelse(is.na(.), 0, 1))) %>%
+    mutate(mace = ifelse(ischemic_heart_disease_age_at_event == 0 & 
+                         congestive_heart_failure_age_at_event == 0 & 
+                         stroke_age_at_event == 0, 
+                         'No', 'Yes')),
+    mace = factor(mace, levels = c("No", "Yes"))
+  ) %>%
+  select(age_at_cancer_diagnosis, year_of_birth, gender, race, education, mean_education, income, mean_income,
+         copd_count, ardds_count, obesity_count, diabetes_count, hypertension_count, 
+         dyslipidemia_count, ibd_count, chronic_liver_disease_count, 
+         antiarrhythmics_count, vasodilators_count, statins_count, mace)
+
+
+head(final)
+#write_csv(final, "/Users/shimengyao/Library/CloudStorage/Box-Box/Cao Lab_SMY/PhD/Intro to Data Science I/Final project/final_dataset.csv")
+```
+
+
